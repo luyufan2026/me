@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#07080c"/><stop offset="45%" stop-color="#12151c"/><stop offset="100%" stop-color="#1a140e"/></linearGradient>
+    <filter id="n">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.25"/></feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#g)"/>
+  
+  <path d="M0 520 L1600 470 L1600 900 L0 900 Z" fill="#050506"/>
+  <rect x="180" y="300" width="70" height="230" fill="#0c0d12"/>
+  <rect x="420" y="250" width="120" height="280" fill="#10131a"/>
+  <rect x="980" y="280" width="90" height="250" fill="#0e1016"/>
+  <rect x="1240" y="220" width="160" height="310" fill="#141820"/>
+  <circle cx="250" cy="430" r="3" fill="#e6d7b0" opacity="0.8"/>
+  <circle cx="510" cy="390" r="2.5" fill="#f2e6c8" opacity="0.7"/>
+  <circle cx="1040" cy="360" r="2" fill="#d9c8a4" opacity="0.65"/>
+  <circle cx="1320" cy="340" r="3" fill="#f6edd4" opacity="0.75"/>
+  <rect x="0" y="500" width="1600" height="2" fill="#2a241c" opacity="0.5"/>
+
+  <rect width="1600" height="900" filter="url(#n)" opacity="0.5"/>
+</svg>

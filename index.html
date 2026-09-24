@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WHO AM I?</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="experience">
+
+    <!-- opening -->
+    <section id="opening" class="section is-active">
+      <button class="question" id="opening-question" type="button" aria-label="WHO AM I?">
+        <span class="question-mark"><span class="typed"></span><span class="caret" aria-hidden="true"></span></span>
+        <span class="question-line"><span class="typed"></span></span>
+      </button>
+    </section>
+
+    <!-- memory-section -->
+    <section id="memory-section" class="section" inert>
+      <div id="memory-stage" class="memory-stage"></div>
+    </section>
+
+    <!-- platform-section -->
+    <section id="platform-section" class="section" inert>
+      <div id="platform-marks"></div>
+      <div id="platform-views"></div>
+    </section>
+
+    <!-- collapse-section -->
+    <section id="collapse-section" class="section" inert>
+      <div id="bubble-field"></div>
+    </section>
+
+    <!-- eye-section -->
+    <section id="eye-section" class="section" inert>
+      <div class="eye-wrap" id="eye-wrap">
+        <img id="eye-photo" class="eye-photo" alt="" draggable="false" />
+        <button class="pupil" id="pupil" type="button" aria-label="pupil"></button>
+      </div>
+    </section>
+
+    <!-- camera-section -->
+    <section id="camera-section" class="section" inert>
+      <div class="finder">
+        <div class="finder-media" id="finder-media"></div>
+        <div class="finder-chrome" aria-hidden="true">
+          <div class="finder-readout">
+            <span class="rec"><i></i>REC</span>
+            <span class="timestamp" id="timestamp">00:00:00</span>
+          </div>
+          <div class="focus-frame">
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="exposure"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ending-section -->
+    <section id="ending-section" class="section" inert>
+      <button class="question" id="ending-question" type="button" aria-label="WHO AM I?">
+        <span class="question-mark"><span class="typed"></span><span class="caret" aria-hidden="true"></span></span>
+        <span class="question-line"><span class="typed"></span></span>
+      </button>
+    </section>
+
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>

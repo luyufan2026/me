@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 280">
+  <defs>
+    <filter id="n">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="4"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.22"/></feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="400" height="280" fill="#8a7368"/>
+  
+  <ellipse cx="210" cy="150" rx="160" ry="84" fill="#a08476"/>
+  <path d="M70 156 Q160 112 230 136 Q280 118 340 158 Q270 196 180 190 Q110 184 70 156 Z" fill="#cfc4b8"/>
+  <circle cx="196" cy="156" r="22" fill="#5a3e32"/>
+  <circle cx="196" cy="156" r="9" fill="#1a1210"/>
+  <path d="M84 140 Q180 104 332 150" fill="none" stroke="#3a2c26" stroke-width="3.2"/>
+  <ellipse cx="188" cy="148" rx="6" ry="4" fill="#fff" opacity="0.35"/>
+
+  <rect width="400" height="280" filter="url(#n)" opacity="0.45"/>
+</svg>
