@@ -1212,27 +1212,40 @@ function openPupil() {
   if (state.phase !== "eye" || !state.eyeReady || state.eyeOpening) return;
   state.eyeOpening = true;
   setPhase("eye-to-camera");
-  eyeWrap.classList.add("is-receding");
-  camera.classList.add("is-cut", "is-from-pupil", "is-active", "is-world");
-  camera.inert = false;
+
+  // 瞳孔扩大盖住屏幕，大约 1.8 秒，然后是黑场。
+  pupil.classList.add("is-swallow");
+  pupil.style.transition = `transform ${ms(1800)}ms cubic-bezier(.4,0,.15,1)`;
+  pupil.style.transform = "translate(-50%, -50%) scale(36)";
   setTimeout(() => {
     if (state.phase !== "eye-to-camera") return;
-    camera.classList.remove("is-cut");
-    mountWorld();
-    camera.classList.add("is-arriving");
-  }, ms(1100));
+    eye.classList.add("is-blackout");
+  }, ms(1500));
+
+  // 黑场停约 0.5 秒后，只先出现背影。
   setTimeout(() => {
     if (state.phase !== "eye-to-camera") return;
-    eye.classList.remove("is-active");
+    eye.classList.remove("is-active", "is-blackout");
     eye.inert = true;
-    eyeWrap.classList.remove("is-receding", "is-in", "is-ready", "is-lens");
+    eyeWrap.classList.remove("is-in", "is-ready", "is-lens", "is-receding");
+    pupil.classList.remove("is-swallow");
+    pupil.style.transition = "";
+    pupil.style.transform = "";
+    camera.classList.add("is-active", "is-world", "is-arriving");
+    camera.inert = false;
+    mountWorld();
+  }, ms(2300));
+
+  // 人物淡入并停一下，三块影像再从中间向两边长出来。
+  setTimeout(() => {
+    if (state.phase !== "eye-to-camera") return;
     camera.classList.add("is-open");
     setPhase("camera");
     state.eyeOpening = false;
     state.worldReadyAt = performance.now();
     clearTimeout(state.worldTimer);
     state.worldTimer = setTimeout(() => closeWorld(), ms(16000));
-  }, ms(3200));
+  }, ms(4900));
 }
 
 eyeWrap.addEventListener("click", openPupil);
@@ -1246,7 +1259,7 @@ function mountWorld() {
   if (!clip) return;
   const stamp = document.getElementById("timestamp");
   if (stamp) stamp.textContent = clip.timestamp || "";
-  document.querySelectorAll(".world-pane").forEach((video, i) => {
+  document.querySelectorAll(".world-pane video").forEach((video, i) => {
     video.muted = i !== 1;
     video.loop = true;
     video.playsInline = true;
@@ -1269,7 +1282,7 @@ function mountWorld() {
 }
 
 function stopCameraMedia() {
-  document.querySelectorAll(".world-pane").forEach((video) => {
+  document.querySelectorAll(".world-pane video").forEach((video) => {
     video.pause();
     video.removeAttribute("src");
     video.load();
@@ -1290,24 +1303,29 @@ function closeWorld() {
   state.cameraClosing = true;
   clearTimeout(state.worldTimer);
   setPhase("closing");
+  // 左右先暗，中间最后暗。人再停一下，然后自己消失。
   camera.classList.add("is-dimming");
   setTimeout(() => {
     if (!camera.classList.contains("is-dimming")) return;
     camera.classList.add("is-gone-person");
-  }, ms(3600));
-  setTimeout(arriveEnding, ms(7200));
+  }, ms(4600));
+  setTimeout(arriveEnding, ms(7100));
 }
 
 function trackCamera(e) {
-  if (state.phase !== "camera" && state.phase !== "eye-to-camera") return;
+  if (state.phase !== "camera") return;
   const nx = e.clientX / window.innerWidth - 0.5;
   const ny = e.clientY / window.innerHeight - 0.5;
   const head = document.querySelector(".person-head");
   if (head) {
-    head.style.transform = `translateX(-50%) rotate(${nx * 7}deg) translate(${nx * 6}px, ${ny * 3}px)`;
+    const yaw = Math.max(-3, Math.min(3, nx * 6));
+    const pitch = Math.max(-2, Math.min(2, ny * -4));
+    head.style.transform = `rotateY(${yaw}deg) rotateX(${pitch}deg)`;
   }
-  if (worldArc && state.phase === "camera") {
-    worldArc.style.transform = `translate(calc(-50% + ${nx * -34}px), calc(-50% + ${ny * -16}px))`;
+  if (worldArc) {
+    const px = Math.max(-16, Math.min(16, nx * -32));
+    const py = Math.max(-8, Math.min(8, ny * -16));
+    worldArc.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px))`;
   }
 }
 
@@ -1323,9 +1341,10 @@ function arriveEnding() {
   camera.classList.add("is-cut");
   camera.classList.remove("is-active", "is-from-pupil", "is-open", "is-world", "is-arriving", "is-dimming", "is-gone-person");
   camera.inert = true;
-  eye.classList.remove("is-active", "is-hold");
+  eye.classList.remove("is-active", "is-hold", "is-blackout");
   eye.inert = true;
   eyeWrap.classList.remove("is-lens", "is-in", "is-ready", "is-receding");
+  pupil.classList.remove("is-swallow");
   ending.classList.add("is-cut", "is-active");
   ending.inert = false;
   setPhase("ending");
@@ -1383,8 +1402,9 @@ function prepareCycle() {
   platform.classList.remove("is-gone", "is-active", "is-hold");
   platform.style.visibility = "";
   collapse.classList.remove("is-active", "is-dark", "is-hold", "is-person", "is-unstable");
-  eye.classList.remove("is-active", "is-hold");
+  eye.classList.remove("is-active", "is-hold", "is-blackout");
   eyeWrap.classList.remove("is-in", "is-ready", "is-opening", "is-lens", "is-receding");
+  pupil.classList.remove("is-swallow");
   eyePhoto.style.opacity = "";
   eyePhoto.style.filter = "";
   eyePhoto.style.transition = "";

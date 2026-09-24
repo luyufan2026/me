@@ -61,16 +61,47 @@
     <!-- camera-section -->
     <section id="camera-section" class="section" inert>
       <div class="world" id="world">
+        <!-- 三块影像围着人。边缘用遮罩化开，不是三张卡片。 -->
         <div class="world-arc" id="world-arc">
-          <video class="world-pane pane-left" muted loop playsinline></video>
-          <video class="world-pane pane-center" loop playsinline></video>
-          <video class="world-pane pane-right" muted loop playsinline></video>
-        </div>
-        <figure class="person" id="person">
-          <div class="person-body"></div>
-          <div class="person-head">
-            <span class="person-eye"></span>
+          <div class="world-pane pane-left">
+            <video muted loop playsinline></video>
           </div>
+          <div class="world-pane pane-center">
+            <video loop playsinline></video>
+          </div>
+          <div class="world-pane pane-right">
+            <video muted loop playsinline></video>
+          </div>
+        </div>
+        <!-- 背影剪影。没有五官，头可以单独轻轻转。 -->
+        <figure class="person" id="person" aria-hidden="true">
+          <svg class="person-shape" viewBox="0 0 200 520">
+            <path class="person-body" fill="#2a2a2a" d="M100 88
+              C88 92 70 108 54 128
+              C40 148 30 176 30 214
+              C30 250 36 280 48 298
+              C58 308 66 322 68 352
+              C64 400 60 452 64 484
+              C68 502 82 510 96 508
+              C106 506 108 492 106 468
+              C104 424 102 364 100 326
+              C102 364 102 424 104 468
+              C102 492 104 506 114 508
+              C128 510 142 502 146 484
+              C150 452 146 400 142 352
+              C144 322 152 308 162 298
+              C174 280 180 250 180 214
+              C180 176 170 148 156 128
+              C140 108 122 92 100 88Z"/>
+            <g class="person-head">
+              <path fill="#2a2a2a" d="M100 14
+                C116 16 128 34 128 54
+                C128 74 118 96 106 112
+                L94 112
+                C82 96 72 74 72 54
+                C72 34 84 16 100 14Z"/>
+            </g>
+          </svg>
         </figure>
         <div class="finder-chrome" aria-hidden="true">
           <div class="finder-readout">
