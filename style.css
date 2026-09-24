@@ -158,6 +158,11 @@ body::before {
   min-height: 42vh;
   color: var(--ink);
   background: transparent;
+  cursor: pointer;
+}
+
+.question:hover .question-mark {
+  filter: brightness(1.18);
 }
 
 .question-mark {
@@ -232,6 +237,54 @@ body::before {
   z-index: 0;
   pointer-events: none;
   opacity: 0.85;
+  transition: opacity 0.8s ease, filter 0.8s ease;
+}
+
+.body-guide.is-near,
+.body-guide.is-assembled {
+  opacity: 1;
+  filter: brightness(1.85);
+}
+
+.memory-line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 40;
+  width: max-content;
+  max-width: min(24em, 70vw);
+  transform: translate(-50%, -50%);
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s ease;
+}
+
+.memory-line.is-on {
+  opacity: 1;
+}
+
+.memory-line.is-residue {
+  opacity: 0.14;
+}
+
+.memory-age,
+.memory-text {
+  margin: 0;
+  font-weight: 300;
+}
+
+.memory-age {
+  font-size: 18px;
+  letter-spacing: 0.22em;
+  color: rgba(232, 230, 227, 0.5);
+}
+
+.memory-text {
+  margin-top: 0.45em;
+  font-size: 30px;
+  line-height: 1.4;
+  color: rgba(232, 230, 227, 0.84);
 }
 
 .body-guide svg {
@@ -272,6 +325,12 @@ body::before {
   clip-path: var(--clip);
   filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.5));
   background: #141210;
+  transition: filter 0.45s ease, transform 0.45s ease;
+}
+
+.scrap:hover .scrap-photo {
+  filter: drop-shadow(0 22px 26px rgba(0, 0, 0, 0.68));
+  transform: translateY(-3px);
 }
 
 .scrap:not(.is-placed):not(.is-dragging) .scrap-inner {
@@ -285,9 +344,18 @@ body::before {
 }
 
 #memory-section.is-hold .scrap-inner,
-.scrap.is-dragging .scrap-inner,
-.scrap.is-placed .scrap-inner {
+.scrap.is-dragging .scrap-inner {
   animation: none;
+}
+
+.scrap.is-placed .scrap-inner {
+  animation: placed-breath 8s ease-in-out infinite;
+}
+
+@keyframes placed-breath {
+  0%,
+  100% { transform: translate(0, 0) rotate(var(--rot)) scale(var(--scale)); }
+  50% { transform: translate(1.5px, -1.2px) rotate(var(--rot)) scale(calc(var(--scale) * 1.012)); }
 }
 
 .scrap-inner img {
@@ -346,8 +414,17 @@ body::before {
   transform: translate(-50%, -50%);
 }
 
-.mark.is-in:hover {
+.mark.is-in:not(.is-still) {
+  cursor: pointer;
+}
+
+.mark.is-in:not(.is-still):hover {
   opacity: 1;
+  transform: translate(-50%, -50%) scale(1.07);
+}
+
+.mark.is-in:not(.is-still):hover .mark-avatar {
+  box-shadow: 0 0 0 1px rgba(232, 230, 227, 0.42);
 }
 
 .mark.is-still,
@@ -489,6 +566,26 @@ body::before {
   pointer-events: none;
 }
 
+.bubble.is-hint {
+  animation: bubble-hint 1.35s ease;
+}
+
+@keyframes bubble-hint {
+  0%,
+  100% { transform: scale(1); }
+  42% { transform: scale(1.16); }
+}
+
+#collapse-section.is-unstable .bubble:not(.is-popped) {
+  animation: bubble-jitter 0.16s linear infinite;
+}
+
+@keyframes bubble-jitter {
+  0%,
+  100% { filter: brightness(1); }
+  50% { filter: brightness(1.45); }
+}
+
 .bubble img {
   width: 100%;
   height: 100%;
@@ -574,14 +671,44 @@ body::before {
 
 .eye-wrap.is-ready {
   pointer-events: auto;
+  cursor: pointer;
 }
 
-.eye-wrap.is-lens {
+.eye-wrap.is-lens,
+.eye-wrap.is-receding {
   animation: none;
   opacity: 1;
   filter: none;
-  transform: scale(1.5);
-  transition: transform 2.8s cubic-bezier(0.45, 0, 0.16, 1);
+  pointer-events: none;
+}
+
+.eye-wrap.is-receding {
+  animation: eye-recede 2.8s cubic-bezier(0.45, 0, 0.16, 1) forwards;
+}
+
+@keyframes eye-recede {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  62% {
+    opacity: 1;
+    transform: translateY(-6vh) scale(0.14);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8vh) scale(0.045);
+  }
+}
+
+.eye-wrap.is-ready .pupil {
+  animation: pupil-focus 3.2s ease-in-out 1;
+}
+
+@keyframes pupil-focus {
+  0%,
+  100% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04); }
+  40% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.34), 0 0 22px rgba(255, 255, 255, 0.16); }
 }
 
 @keyframes eye-in {
@@ -837,6 +964,183 @@ body::before {
   width: 18px;
   height: 1px;
   background: rgba(232, 230, 227, 0.75);
+}
+
+/* ============================================================
+   person / world
+   ============================================================ */
+
+#camera-section.is-world {
+  background: transparent;
+}
+
+#camera-section.is-open {
+  background: #000;
+}
+
+.world {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  perspective: 1400px;
+}
+
+.world-arc {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 168vw;
+  height: 78vh;
+  transform: translate(-50%, -50%);
+  transform-style: preserve-3d;
+  pointer-events: none;
+  transition: transform 0.9s ease-out;
+}
+
+.world-pane {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 38%;
+  object-fit: cover;
+  opacity: 0;
+  filter: saturate(0.72) contrast(1.04);
+  background: #000;
+}
+
+.pane-left {
+  left: 2%;
+  transform: rotateY(26deg) scale(1.05);
+  transform-origin: right center;
+}
+
+.pane-center {
+  left: 31%;
+  width: 38%;
+  z-index: 1;
+}
+
+.pane-right {
+  right: 2%;
+  transform: rotateY(-26deg) scale(1.05);
+  transform-origin: left center;
+}
+
+#camera-section.is-open .world-pane {
+  opacity: 0.7;
+  transition: opacity 3.6s ease 0.3s;
+}
+
+#camera-section.is-open .pane-center {
+  opacity: 0.86;
+}
+
+#camera-section.is-dimming .world-pane {
+  opacity: 0;
+  transition: opacity 3.8s ease;
+}
+
+.person {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  z-index: 3;
+  width: min(14vw, 150px);
+  height: min(64vh, 560px);
+  transform: translate(-50%, -46%);
+  opacity: 0;
+  pointer-events: none;
+  animation: person-breath 6.4s ease-in-out infinite;
+}
+
+#camera-section.is-arriving .person,
+#camera-section.is-open .person {
+  opacity: 1;
+  transition: opacity 2.6s ease;
+}
+
+#camera-section.is-gone-person .person {
+  opacity: 0;
+  transition: opacity 3.4s ease;
+}
+
+.person-head {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: 1;
+  width: 36%;
+  aspect-ratio: 0.78;
+  transform: translateX(-50%);
+  border-radius: 46% 46% 42% 42%;
+  background: #101010;
+  transition: transform 0.8s ease;
+}
+
+.person-eye {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 22%;
+  height: 8%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #3a3a3a;
+  box-shadow: 0 0 0 1px rgba(232, 230, 227, 0.2);
+}
+
+.person-body {
+  position: absolute;
+  left: 50%;
+  top: 11%;
+  width: 150%;
+  height: 89%;
+  transform: translateX(-50%);
+  background: #101010;
+  clip-path: polygon(
+    50% 0%,
+    58% 3%,
+    72% 12%,
+    98% 24%,
+    90% 40%,
+    68% 36%,
+    64% 100%,
+    36% 100%,
+    32% 36%,
+    10% 40%,
+    2% 24%,
+    28% 12%,
+    42% 3%
+  );
+  animation: person-sway 9s ease-in-out infinite;
+}
+
+@keyframes person-sway {
+  0%,
+  100% { transform: translateX(-50%) rotate(0deg); }
+  50% { transform: translateX(-50%) rotate(0.6deg); }
+}
+
+@keyframes person-breath {
+  0%,
+  100% { transform: translate(-50%, -46%) scale(1); }
+  50% { transform: translate(-50%, -47.4%) scale(1.012); }
+}
+
+#camera-section.is-world .finder-chrome {
+  z-index: 5;
+}
+
+#camera-section.is-world .finder-readout {
+  top: 28px;
+  left: 32px;
+  right: 32px;
+  color: rgba(232, 230, 227, 0.36);
+}
+
+#camera-section.is-dimming .finder-chrome {
+  opacity: 0;
+  transition: opacity 2.2s ease;
 }
 
 /* ============================================================

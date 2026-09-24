@@ -16,7 +16,7 @@
 
 // 拼到这个比例就进入下一部分。故意不是 100%，脸不会被拼完整。
 const ASSEMBLE_RATIO = 0.7;
-// 戳破这么多个泡泡就进入眼睛。剩下的会跟着碎掉。
+// 戳破这么多个泡泡之后，剩下的会先排成一个人，再一起碎掉。
 const POPS_TO_CONTINUE = 4;
 
 // fx / fy：脸部区域内的位置（0–1），不是屏幕百分比。
@@ -28,6 +28,8 @@ const MEMORY_FRAGMENTS = [
     id: "forehead",
     src: "assets/images/memory/fragment-2022.jpg",
     year: "2022",
+    age: "16",
+    memoryText: "My first serious relationship.",
     sx: 8, sy: 14,
     fx: 0.12, fy: 0.0,
     w: 26, h: 16,
@@ -42,6 +44,8 @@ const MEMORY_FRAGMENTS = [
     id: "eye-left",
     src: "assets/images/memory/fragment-2021.jpg",
     year: "2021",
+    age: "15",
+    memoryText: "Preparing for an important exam.",
     sx: 72, sy: 9,
     fx: 0.02, fy: 0.22,
     w: 20, h: 15,
@@ -56,6 +60,8 @@ const MEMORY_FRAGMENTS = [
     id: "eye-right",
     src: "assets/images/memory/fragment-2025.jpg",
     year: "2025",
+    age: "19",
+    memoryText: "I am here now.",
     sx: 78, sy: 58,
     fx: 0.50, fy: 0.20,
     w: 20, h: 16,
@@ -70,6 +76,8 @@ const MEMORY_FRAGMENTS = [
     id: "nose",
     src: "assets/images/memory/fragment-2009.jpg",
     year: "2009",
+    age: "3",
+    memoryText: "Cartoons, and a long time in front of a screen.",
     sx: 6, sy: 40,
     fx: 0.30, fy: 0.34,
     w: 18, h: 18,
@@ -84,6 +92,8 @@ const MEMORY_FRAGMENTS = [
     id: "mouth",
     src: "assets/images/memory/fragment-2008.jpg",
     year: "2008",
+    age: "2",
+    memoryText: "My first birthday portrait.",
     sx: 16, sy: 76,
     fx: 0.20, fy: 0.60,
     w: 22, h: 13,
@@ -98,6 +108,8 @@ const MEMORY_FRAGMENTS = [
     id: "chin",
     src: "assets/images/memory/fragment-2024.jpg",
     year: "2024",
+    age: "18",
+    memoryText: "I arrived in America.",
     sx: 58, sy: 80,
     fx: 0.22, fy: 0.76,
     w: 22, h: 14,
@@ -224,8 +236,10 @@ const ending = document.getElementById("ending-section");
 const eyeWrap = document.getElementById("eye-wrap");
 const eyePhoto = document.getElementById("eye-photo");
 const pupil = document.getElementById("pupil");
-const finderMedia = document.getElementById("finder-media");
 const bubbleField = document.getElementById("bubble-field");
+const memoryLine = document.getElementById("memory-line");
+const bodyGuide = document.getElementById("body-guide");
+const worldArc = document.getElementById("world-arc");
 
 const state = {
   phase: "opening",
@@ -248,7 +262,13 @@ const state = {
   remaining: 0,
   pops: 0,
   chainStarted: false,
+  forming: false,
+  unstable: false,
+  bubbleHinted: false,
+  hinted: false,
   bubbleTimer: 0,
+  worldTimer: 0,
+  worldReadyAt: 0,
 };
 
 const pointer = { x: 0, y: 0, inside: false };
@@ -373,6 +393,7 @@ function onQuestion(event) {
   activate("memory-section");
   setPhase("memory");
   restartScrapEntrance();
+  setTimeout(() => hintScrap(), ms(1900));
   setTimeout(() => {
     state.leavingQuestion = false;
   }, ms(1800));
@@ -550,6 +571,39 @@ function restartScrapEntrance() {
   });
 }
 
+function hintScrap() {
+  if (state.phase !== "memory" || state.hinted || REDUCED) return;
+  state.hinted = true;
+  const scraps = document.querySelectorAll("#memory-stage .scrap");
+  const el = scraps[4] || scraps[0];
+  if (!el || el.classList.contains("is-dragging") || el.classList.contains("is-placed")) return;
+  el.animate(
+    [
+      { translate: "0 0" },
+      { translate: "24px -16px", offset: 0.42 },
+      { translate: "0 0" },
+    ],
+    { duration: 1700, easing: "ease" }
+  );
+}
+
+function showMemory(f) {
+  if (!f || !memoryLine) return;
+  memoryLine.querySelector(".memory-age").textContent = f.age ? `AGE ${f.age}` : "";
+  memoryLine.querySelector(".memory-text").textContent = f.memoryText || "";
+  memoryLine.classList.remove("is-residue");
+  memoryLine.classList.add("is-on");
+}
+
+function hideMemory() {
+  if (!memoryLine) return;
+  memoryLine.classList.remove("is-on");
+  memoryLine.classList.add("is-residue");
+  setTimeout(() => {
+    if (!memoryLine.classList.contains("is-on")) memoryLine.classList.remove("is-residue");
+  }, ms(1600));
+}
+
 function onScrapDown(e) {
   if (state.phase !== "memory" || state.assembled) return;
   if (e.button !== undefined && e.button !== 0) return;
@@ -566,6 +620,7 @@ function onScrapDown(e) {
   el.style.opacity = "1";
   el.style.zIndex = String(++zTop);
   playSound(SOUND.paperPick, 0.13, 80);
+  showMemory(el._frag);
   evaluateAssembly();
 }
 
@@ -580,6 +635,11 @@ function onScrapMove(e) {
   y = Math.max(-h * 0.25, Math.min(y, window.innerHeight - h * 0.75));
   el.style.left = `${x}px`;
   el.style.top = `${y}px`;
+  const f = el._frag;
+  if (!f || !bodyGuide) return;
+  const t = targetFor(f, faceOrigin());
+  const dist = Math.hypot((x + w / 2) - (t.x + w / 2), (y + h / 2) - (t.y + h / 2));
+  bodyGuide.classList.toggle("is-near", dist < Math.min(window.innerWidth, window.innerHeight) * 0.22);
 }
 
 function onScrapUp(e) {
@@ -587,6 +647,8 @@ function onScrapUp(e) {
   if (dragEl !== el) return;
   dragEl = null;
   el.classList.remove("is-dragging");
+  if (bodyGuide) bodyGuide.classList.remove("is-near");
+  hideMemory();
   const f = el._frag;
   const o = faceOrigin();
   const t = targetFor(f, o);
@@ -615,6 +677,7 @@ function evaluateAssembly() {
   const placed = document.querySelectorAll("#memory-stage .scrap.is-placed").length;
   const need = Math.ceil(MEMORY_FRAGMENTS.length * ASSEMBLE_RATIO);
   if (placed >= need) {
+    if (bodyGuide) bodyGuide.classList.add("is-assembled");
     if (state.assembleTimer) return;
     state.assembleTimer = setTimeout(() => {
       state.assembleTimer = null;
@@ -623,9 +686,10 @@ function evaluateAssembly() {
         state.assembled = true;
         enterPlatform();
       }
-    }, ms(2200));
+    }, ms(3200));
     return;
   }
+  if (bodyGuide) bodyGuide.classList.remove("is-assembled");
   if (state.assembleTimer) {
     clearTimeout(state.assembleTimer);
     state.assembleTimer = null;
@@ -915,12 +979,19 @@ function startBubbleMotion() {
     b.el.style.background = "";
   });
   clearTimeout(state.bubbleTimer);
-  state.bubbleTimer = setTimeout(() => bubbleTick(performance.now()), 32);
+  const hint = state.bubbles.find((b) => !b.popped);
+  if (hint && !state.bubbleHinted) {
+    state.bubbleHinted = true;
+    hint.el.classList.add("is-hint");
+    setTimeout(() => hint.el.classList.remove("is-hint"), ms(1400));
+  }
+  state.bubbleTimer = setTimeout(() => bubbleTick(performance.now()), ms(1500));
 }
 
 function bubbleTick(now) {
-  if (state.phase !== "collapse") return;
+  if (state.phase !== "collapse" || state.forming) return;
   const t = now / 1000;
+  const awake = state.pops > 0;
   state.bubbles.forEach((b) => {
     if (b.popped) return;
     const floatX = Math.sin(t * b.speed + b.phase) * b.amp;
@@ -933,11 +1004,12 @@ function bubbleTick(now) {
       const dx = cx - pointer.x;
       const dy = cy - pointer.y;
       const dist = Math.hypot(dx, dy) || 1;
-      const radius = 150;
+      const radius = awake ? 220 : 150;
       if (dist < radius) {
         const force = (radius - dist) / radius;
-        rx = (dx / dist) * force * 46;
-        ry = (dy / dist) * force * 40;
+        const push = awake ? 78 : 46;
+        rx = (dx / dist) * force * push;
+        ry = (dy / dist) * force * (awake ? 64 : 40);
       }
     }
     b.ox += (rx - b.ox) * 0.06;
@@ -984,11 +1056,15 @@ function popBubble(el) {
   playPop();
   state.pops += 1;
   if (state.pops >= POPS_TO_CONTINUE && !state.chainStarted) {
-    state.chainStarted = true;
-    chainRest();
-    setTimeout(() => {
-      if (state.phase === "collapse") finishCollapse();
-    }, ms(1400));
+    const left = state.bubbles.filter((b) => !b.popped);
+    if (left.length < 3) {
+      state.chainStarted = true;
+      setTimeout(() => {
+        if (state.phase === "collapse") finishCollapse();
+      }, ms(900));
+    } else {
+      formPerson();
+    }
   }
   setTimeout(() => {
     el.remove();
@@ -997,10 +1073,58 @@ function popBubble(el) {
   }, ms(780));
 }
 
-function chainRest() {
+const PERSON_SHAPE = [
+  [0.50, 0.10], [0.44, 0.14], [0.56, 0.14], [0.50, 0.19], [0.40, 0.17], [0.60, 0.17],
+  [0.34, 0.30], [0.66, 0.30], [0.42, 0.34], [0.58, 0.34], [0.50, 0.40],
+  [0.50, 0.50], [0.45, 0.58], [0.55, 0.58], [0.50, 0.66],
+  [0.26, 0.40], [0.74, 0.40], [0.18, 0.52], [0.82, 0.52], [0.14, 0.62], [0.86, 0.62],
+  [0.43, 0.76], [0.57, 0.76], [0.41, 0.88], [0.59, 0.88],
+];
+
+function formPerson() {
+  if (state.forming) return;
+  state.forming = true;
+  state.chainStarted = true;
+  clearTimeout(state.bubbleTimer);
   const left = state.bubbles.filter((b) => !b.popped);
+  const span = Math.min(window.innerWidth, window.innerHeight);
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  const sx = span * 0.46;
+  const sy = span * 0.52;
+  collapse.classList.add("is-person");
   left.forEach((b, i) => {
-    setTimeout(() => popBubble(b.el), ms(80 + i * 120));
+    const p = PERSON_SHAPE[i % PERSON_SHAPE.length];
+    const lap = Math.floor(i / PERSON_SHAPE.length);
+    const x = cx + (p[0] - 0.5) * sx * 2 - b.size / 2 + lap * 8;
+    const y = cy + (p[1] - 0.42) * sy * 2 - b.size / 2;
+    b.x = x;
+    b.y = y;
+    b.el.style.transition = "left 2.6s cubic-bezier(.4,0,.2,1), top 2.6s cubic-bezier(.4,0,.2,1), transform 2.6s ease";
+    b.el.style.transform = "none";
+    b.el.style.left = `${x}px`;
+    b.el.style.top = `${y}px`;
+  });
+  state.collapseTimer = setTimeout(() => destabilizePerson(), ms(4600));
+}
+
+function destabilizePerson() {
+  if (state.phase !== "collapse" || state.unstable) return;
+  state.unstable = true;
+  collapse.classList.add("is-unstable");
+  const left = state.bubbles.filter((b) => !b.popped);
+  if (!left.length) {
+    finishCollapse();
+    return;
+  }
+  left.forEach((b, i) => {
+    const drift = (i % 2 === 0 ? 1 : -1) * (22 + (i % 5) * 16);
+    b.el.style.transition = "left 1.2s ease, top 1.2s ease";
+    b.el.style.left = `${b.x + drift}px`;
+    b.el.style.top = `${b.y + (i % 3) * 12 - 10}px`;
+    setTimeout(() => {
+      if (state.phase === "collapse") popBubble(b.el);
+    }, ms(980 + i * 80));
   });
 }
 
@@ -1088,151 +1212,120 @@ function openPupil() {
   if (state.phase !== "eye" || !state.eyeReady || state.eyeOpening) return;
   state.eyeOpening = true;
   setPhase("eye-to-camera");
-
-  pupil.style.transition = `transform ${ms(2400)}ms cubic-bezier(.45,0,.16,1), opacity ${ms(900)}ms ease ${ms(1500)}`;
-  eyeWrap.classList.add("is-lens");
-  void pupil.offsetWidth;
+  eyeWrap.classList.add("is-receding");
+  camera.classList.add("is-cut", "is-from-pupil", "is-active", "is-world");
+  camera.inert = false;
   setTimeout(() => {
-    pupil.style.transform = "translate(-50%, -50%) translate(0px, 0px) scale(2.4)";
-    pupil.style.opacity = "0";
-  }, 30);
-  startCameraReveal();
+    if (state.phase !== "eye-to-camera") return;
+    camera.classList.remove("is-cut");
+    mountWorld();
+    camera.classList.add("is-arriving");
+  }, ms(1100));
+  setTimeout(() => {
+    if (state.phase !== "eye-to-camera") return;
+    eye.classList.remove("is-active");
+    eye.inert = true;
+    eyeWrap.classList.remove("is-receding", "is-in", "is-ready", "is-lens");
+    camera.classList.add("is-open");
+    setPhase("camera");
+    state.eyeOpening = false;
+    state.worldReadyAt = performance.now();
+    clearTimeout(state.worldTimer);
+    state.worldTimer = setTimeout(() => closeWorld(), ms(16000));
+  }, ms(3200));
 }
 
-pupil.addEventListener("click", openPupil);
+eyeWrap.addEventListener("click", openPupil);
 
 /* ============================================================
    camera-section
    ============================================================ */
 
-function mountClip(index, fade) {
-  const clip = CAMERA_CLIPS[index];
-  document.getElementById("timestamp").textContent = clip.timestamp || "";
-
-  const apply = () => {
-    stopCameraMedia();
-    finderMedia.innerHTML = "";
-    if (clip.type === "video") {
-      const video = document.createElement("video");
-      video.muted = false;
-      video.loop = true;
-      video.autoplay = true;
-      video.playsInline = true;
-      video.setAttribute("playsinline", "");
-      if (clip.poster) video.poster = clip.poster;
-      const fallback = () => {
-        if (!clip.poster) return;
-        const img = document.createElement("img");
-        img.src = clip.poster;
-        img.alt = "";
-        img.draggable = false;
-        if (video.parentNode) video.replaceWith(img);
-      };
-      video.addEventListener("error", fallback);
-      video.src = clip.src;
-      finderMedia.appendChild(video);
-      const play = video.play();
-      if (play && typeof play.catch === "function") {
-        play.catch(() => {
+function mountWorld() {
+  const clip = CAMERA_CLIPS[0];
+  if (!clip) return;
+  const stamp = document.getElementById("timestamp");
+  if (stamp) stamp.textContent = clip.timestamp || "";
+  document.querySelectorAll(".world-pane").forEach((video, i) => {
+    video.muted = i !== 1;
+    video.loop = true;
+    video.playsInline = true;
+    video.setAttribute("playsinline", "");
+    if (video.getAttribute("src") !== clip.src) video.src = clip.src;
+    const start = () => {
+      try { video.currentTime = i * 5; } catch (err) { /* not ready yet */ }
+      const attempt = video.play();
+      if (attempt && typeof attempt.catch === "function") {
+        attempt.catch(() => {
           video.muted = true;
           const retry = video.play();
           if (retry && typeof retry.catch === "function") retry.catch(() => {});
         });
       }
-    } else {
-      const img = document.createElement("img");
-      img.src = clip.src;
-      img.alt = "";
-      img.draggable = false;
-      finderMedia.appendChild(img);
-    }
-    finderMedia.classList.remove("is-fading");
-  };
-
-  if (fade) {
-    finderMedia.classList.add("is-fading");
-    setTimeout(apply, ms(700));
-  } else {
-    apply();
-  }
+    };
+    if (video.readyState >= 2) start();
+    else video.addEventListener("loadeddata", start, { once: true });
+  });
 }
 
 function stopCameraMedia() {
-  finderMedia.querySelectorAll("video").forEach((video) => {
+  document.querySelectorAll(".world-pane").forEach((video) => {
     video.pause();
     video.removeAttribute("src");
     video.load();
   });
 }
 
-function startCameraReveal() {
-  state.cameraIndex = 0;
-  mountClip(0, false);
-
-  state.lens = { cx: 50, cy: 50 };
-
-  camera.classList.add("is-cut", "is-from-pupil", "is-active");
-  camera.inert = false;
-  camera.style.clipPath = "";
-  camera.style.transition = "";
-
-  setTimeout(() => {
-    camera.classList.remove("is-cut");
-    void camera.offsetWidth;
-    camera.classList.add("is-open");
-  }, 70);
-
-  setTimeout(() => {
-    if (state.phase === "eye-to-camera") setPhase("camera");
-    state.eyeOpening = false;
-  }, ms(2800));
-}
-
 function advanceCamera(dir) {
   if (state.phase !== "camera" || state.cameraClosing) return;
-  const next = state.cameraIndex + dir;
-  if (next >= CAMERA_CLIPS.length) {
-    closeCamera();
-    return;
-  }
-  if (next < 0) return;
-  state.cameraIndex = next;
-  mountClip(next, true);
+  if (dir > 0) closeWorld();
 }
 
 function closeCamera() {
+  closeWorld();
+}
+
+function closeWorld() {
   if (state.cameraClosing) return;
   state.cameraClosing = true;
+  clearTimeout(state.worldTimer);
   setPhase("closing");
-  camera.classList.remove("is-open");
-  eyeWrap.classList.remove("is-lens");
-  setTimeout(arriveEnding, ms(2800));
+  camera.classList.add("is-dimming");
+  setTimeout(() => {
+    if (!camera.classList.contains("is-dimming")) return;
+    camera.classList.add("is-gone-person");
+  }, ms(3600));
+  setTimeout(arriveEnding, ms(7200));
 }
 
 function trackCamera(e) {
   if (state.phase !== "camera" && state.phase !== "eye-to-camera") return;
-  const media = finderMedia.querySelector("img, video");
-  if (!media) return;
   const nx = e.clientX / window.innerWidth - 0.5;
   const ny = e.clientY / window.innerHeight - 0.5;
-  media.style.transform = `translate(${nx * -26}px, ${ny * -18}px)`;
+  const head = document.querySelector(".person-head");
+  if (head) {
+    head.style.transform = `translateX(-50%) rotate(${nx * 7}deg) translate(${nx * 6}px, ${ny * 3}px)`;
+  }
+  if (worldArc && state.phase === "camera") {
+    worldArc.style.transform = `translate(calc(-50% + ${nx * -34}px), calc(-50% + ${ny * -16}px))`;
+  }
 }
 
-camera.addEventListener("click", (e) => {
-  if (state.phase !== "camera") return;
-  const x = e.clientX / window.innerWidth;
-  advanceCamera(x < 0.28 ? -1 : 1);
+camera.addEventListener("click", () => {
+  if (state.phase !== "camera" || state.cameraClosing) return;
+  if (performance.now() - state.worldReadyAt < 4500) return;
+  closeWorld();
 });
 
 function arriveEnding() {
+  clearTimeout(state.worldTimer);
   stopCameraMedia();
-  finderMedia.innerHTML = "";
   camera.classList.add("is-cut");
-  camera.classList.remove("is-active", "is-from-pupil", "is-open");
+  camera.classList.remove("is-active", "is-from-pupil", "is-open", "is-world", "is-arriving", "is-dimming", "is-gone-person");
   camera.inert = true;
   eye.classList.remove("is-active", "is-hold");
   eye.inert = true;
-  eyeWrap.classList.remove("is-lens", "is-in", "is-ready");
+  eyeWrap.classList.remove("is-lens", "is-in", "is-ready", "is-receding");
   ending.classList.add("is-cut", "is-active");
   ending.inert = false;
   setPhase("ending");
@@ -1254,6 +1347,7 @@ function prepareCycle() {
   clearTimeout(state.assembleTimer);
   clearTimeout(state.collapseTimer);
   clearTimeout(state.bubbleTimer);
+  clearTimeout(state.worldTimer);
   stopTyping();
   state.typedDone = false;
   state.assembleTimer = null;
@@ -1270,26 +1364,34 @@ function prepareCycle() {
   state.remaining = 0;
   state.pops = 0;
   state.chainStarted = false;
+  state.forming = false;
+  state.unstable = false;
+  state.bubbleHinted = false;
+  state.hinted = false;
+  state.worldReadyAt = 0;
   state.lens = { cx: 50, cy: 50 };
 
   stopCameraMedia();
-  finderMedia.innerHTML = "";
-  finderMedia.classList.remove("is-fading");
+  if (memoryLine) memoryLine.classList.remove("is-on", "is-residue");
+  if (bodyGuide) bodyGuide.classList.remove("is-near", "is-assembled");
+  if (worldArc) worldArc.style.transform = "";
+  const head = document.querySelector(".person-head");
+  if (head) head.style.transform = "";
   bubbleField.innerHTML = "";
 
   memory.classList.remove("is-dissolving", "is-hold", "is-active");
   platform.classList.remove("is-gone", "is-active", "is-hold");
   platform.style.visibility = "";
-  collapse.classList.remove("is-active", "is-dark", "is-hold");
+  collapse.classList.remove("is-active", "is-dark", "is-hold", "is-person", "is-unstable");
   eye.classList.remove("is-active", "is-hold");
-  eyeWrap.classList.remove("is-in", "is-ready", "is-opening", "is-lens");
+  eyeWrap.classList.remove("is-in", "is-ready", "is-opening", "is-lens", "is-receding");
   eyePhoto.style.opacity = "";
   eyePhoto.style.filter = "";
   eyePhoto.style.transition = "";
   pupil.style.opacity = "";
   pupil.style.transform = "";
   pupil.style.transition = "";
-  camera.classList.remove("is-active", "is-from-pupil", "is-open", "is-hold");
+  camera.classList.remove("is-active", "is-from-pupil", "is-open", "is-hold", "is-world", "is-arriving", "is-dimming", "is-gone-person");
   camera.style.clipPath = "";
   camera.style.transition = "";
 

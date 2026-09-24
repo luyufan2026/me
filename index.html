@@ -33,6 +33,10 @@
         </svg>
       </div>
       <div id="memory-stage" class="memory-stage"></div>
+      <div class="memory-line" id="memory-line" aria-hidden="true">
+        <p class="memory-age"></p>
+        <p class="memory-text"></p>
+      </div>
     </section>
 
     <!-- platform-section -->
@@ -56,22 +60,23 @@
 
     <!-- camera-section -->
     <section id="camera-section" class="section" inert>
-      <div class="eye-contour" aria-hidden="true">
-        <svg viewBox="0 0 900 460" fill="none">
-          <path d="M30 230 C180 36, 720 36, 870 230 C720 424, 180 424, 30 230 Z" stroke="rgba(232,230,227,0.5)" stroke-width="2"/>
-        </svg>
-      </div>
-      <div class="finder">
-        <div class="finder-media" id="finder-media"></div>
+      <div class="world" id="world">
+        <div class="world-arc" id="world-arc">
+          <video class="world-pane pane-left" muted loop playsinline></video>
+          <video class="world-pane pane-center" loop playsinline></video>
+          <video class="world-pane pane-right" muted loop playsinline></video>
+        </div>
+        <figure class="person" id="person">
+          <div class="person-body"></div>
+          <div class="person-head">
+            <span class="person-eye"></span>
+          </div>
+        </figure>
         <div class="finder-chrome" aria-hidden="true">
           <div class="finder-readout">
             <span class="rec"><i></i>REC</span>
             <span class="timestamp" id="timestamp">00:00:00</span>
           </div>
-          <div class="focus-frame">
-            <span></span><span></span><span></span><span></span>
-          </div>
-          <div class="exposure"></div>
         </div>
       </div>
     </section>
