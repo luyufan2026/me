@@ -255,6 +255,57 @@ const pointer = { x: 0, y: 0, inside: false };
 let dragEl = null;
 let zTop = 20;
 
+/* ============================================================
+   audio
+   文件放在 assets/audio/。缺失时静默跳过，不打断页面。
+   ============================================================ */
+
+const SOUND = {
+  typeKey: "assets/audio/type-key.wav",
+  typeEnd: "assets/audio/type-end.wav",
+  paperPick: "assets/audio/paper-pick.wav",
+  paperDrop: "assets/audio/paper-drop.wav",
+  pop: [
+    "assets/audio/pop-01.wav",
+    "assets/audio/pop-02.wav",
+    "assets/audio/pop-03.wav",
+  ],
+};
+
+const sound = {
+  unlocked: false,
+  last: {},
+};
+
+function unlockSound() {
+  sound.unlocked = true;
+}
+
+document.addEventListener("pointerdown", unlockSound, { capture: true });
+
+function playSound(src, volume = 0.18, gap = 70) {
+  if (!sound.unlocked || !src) return;
+  const now = performance.now();
+  const key = src.startsWith("assets/audio/pop-") ? "pop" : src;
+  if (sound.last[key] && now - sound.last[key] < gap) return;
+  sound.last[key] = now;
+  try {
+    const audio = new Audio(src);
+    audio.preload = "auto";
+    audio.volume = Math.max(0, Math.min(1, volume));
+    audio.addEventListener("error", () => {}, { once: true });
+    const pending = audio.play();
+    if (pending && typeof pending.catch === "function") pending.catch(() => {});
+  } catch (err) {
+    /* missing file or autoplay block */
+  }
+}
+
+function playPop() {
+  const list = SOUND.pop;
+  playSound(list[Math.floor(Math.random() * list.length)], 0.14, 110);
+}
+
 function setPhase(name) {
   state.phase = name;
   document.body.dataset.phase = name;
@@ -372,12 +423,16 @@ function typeQuestion(root) {
 
   later(() => {
     mark.textContent = "?";
+    playSound(SOUND.typeKey, 0.16, 30);
     placeCaret(root, "line");
     let index = 0;
     const step = () => {
       if (!state.typing) return;
       if (index < TYPE_LINE.length) {
-        line.textContent += TYPE_LINE[index];
+        const ch = TYPE_LINE[index];
+        line.textContent += ch;
+        const last = index === TYPE_LINE.length - 1;
+        if (ch !== " ") playSound(last ? SOUND.typeEnd : SOUND.typeKey, last ? 0.2 : 0.15, 30);
         index += 1;
         later(step, ms(165));
         return;
@@ -447,6 +502,21 @@ function buildScraps() {
     stage.appendChild(el);
     layoutScrap(el);
   });
+  layoutGuide();
+}
+
+function layoutGuide() {
+  const guide = document.getElementById("body-guide");
+  if (!guide) return;
+  const o = faceOrigin();
+  const faceW = 48 * o.vmin;
+  const faceH = 64 * o.vmin;
+  const w = faceW * 1.72;
+  const h = faceH * 1.48;
+  guide.style.width = `${w}px`;
+  guide.style.height = `${h}px`;
+  guide.style.left = `${o.left + faceW / 2 - w / 2}px`;
+  guide.style.top = `${o.top - faceH * 0.08}px`;
 }
 
 function layoutScrap(el) {
@@ -495,6 +565,7 @@ function onScrapDown(e) {
   el.style.animation = "none";
   el.style.opacity = "1";
   el.style.zIndex = String(++zTop);
+  playSound(SOUND.paperPick, 0.13, 80);
   evaluateAssembly();
 }
 
@@ -531,8 +602,10 @@ function onScrapUp(e) {
     el.style.transition = "left 1.05s cubic-bezier(.16,.8,.2,1), top 1.05s cubic-bezier(.16,.8,.2,1)";
     el.style.left = `${t.x}px`;
     el.style.top = `${t.y}px`;
+    playSound(SOUND.paperDrop, 0.08, 40);
   } else {
     el.style.zIndex = String(f.z);
+    playSound(SOUND.paperDrop, 0.12, 40);
   }
   evaluateAssembly();
 }
@@ -565,6 +638,7 @@ window.addEventListener("resize", () => {
     el.style.transition = "none";
     layoutScrap(el);
   });
+  layoutGuide();
 });
 
 /* ============================================================
@@ -907,6 +981,7 @@ function popBubble(el) {
   el.style.transform = "";
   el.classList.add("is-popped");
   spawnShards(el);
+  playPop();
   state.pops += 1;
   if (state.pops >= POPS_TO_CONTINUE && !state.chainStarted) {
     state.chainStarted = true;
@@ -1014,14 +1089,12 @@ function openPupil() {
   state.eyeOpening = true;
   setPhase("eye-to-camera");
 
-  pupil.style.transition = `transform ${ms(1000)}ms cubic-bezier(.2,.7,.2,1), opacity ${ms(800)}ms ease ${ms(350)}`;
-  eyePhoto.style.transition = `opacity ${ms(2500)}ms ease, filter ${ms(2500)}ms ease`;
+  pupil.style.transition = `transform ${ms(2400)}ms cubic-bezier(.45,0,.16,1), opacity ${ms(900)}ms ease ${ms(1500)}`;
+  eyeWrap.classList.add("is-lens");
   void pupil.offsetWidth;
   setTimeout(() => {
-    pupil.style.transform = "translate(-50%, -50%) translate(0px, 0px) scale(7)";
+    pupil.style.transform = "translate(-50%, -50%) translate(0px, 0px) scale(2.4)";
     pupil.style.opacity = "0";
-    eyePhoto.style.opacity = "0.12";
-    eyePhoto.style.filter = "blur(12px)";
   }, 30);
   startCameraReveal();
 }
@@ -1096,31 +1169,20 @@ function startCameraReveal() {
   state.cameraIndex = 0;
   mountClip(0, false);
 
-  const rect = pupil.getBoundingClientRect();
-  const cx = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
-  const cy = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
-  const radius = Math.max(8, rect.width / 2);
-  state.lens = { cx, cy };
-  const far = Math.hypot(window.innerWidth, window.innerHeight);
+  state.lens = { cx: 50, cy: 50 };
 
   camera.classList.add("is-cut", "is-from-pupil", "is-active");
   camera.inert = false;
-  camera.style.transition = "none";
-  camera.style.clipPath = `circle(${radius}px at ${cx}% ${cy}%)`;
+  camera.style.clipPath = "";
+  camera.style.transition = "";
 
   setTimeout(() => {
     camera.classList.remove("is-cut");
     void camera.offsetWidth;
-    camera.style.transition = `clip-path ${ms(2900)}ms cubic-bezier(.45,0,.16,1)`;
-    camera.style.clipPath = `circle(${far}px at ${cx}% ${cy}%)`;
     camera.classList.add("is-open");
   }, 70);
 
   setTimeout(() => {
-    eye.classList.add("is-cut");
-    eye.classList.remove("is-active");
-    eye.inert = true;
-    setTimeout(() => eye.classList.remove("is-cut"), 40);
     if (state.phase === "eye-to-camera") setPhase("camera");
     state.eyeOpening = false;
   }, ms(2800));
@@ -1142,12 +1204,9 @@ function closeCamera() {
   if (state.cameraClosing) return;
   state.cameraClosing = true;
   setPhase("closing");
-  const cx = state.lens.cx;
-  const cy = state.lens.cy;
   camera.classList.remove("is-open");
-  camera.style.transition = `clip-path ${ms(3000)}ms cubic-bezier(.4,0,.2,1)`;
-  camera.style.clipPath = `circle(0px at ${cx}% ${cy}%)`;
-  setTimeout(arriveEnding, ms(3000));
+  eyeWrap.classList.remove("is-lens");
+  setTimeout(arriveEnding, ms(2800));
 }
 
 function trackCamera(e) {
@@ -1171,6 +1230,9 @@ function arriveEnding() {
   camera.classList.add("is-cut");
   camera.classList.remove("is-active", "is-from-pupil", "is-open");
   camera.inert = true;
+  eye.classList.remove("is-active", "is-hold");
+  eye.inert = true;
+  eyeWrap.classList.remove("is-lens", "is-in", "is-ready");
   ending.classList.add("is-cut", "is-active");
   ending.inert = false;
   setPhase("ending");
@@ -1220,7 +1282,7 @@ function prepareCycle() {
   platform.style.visibility = "";
   collapse.classList.remove("is-active", "is-dark", "is-hold");
   eye.classList.remove("is-active", "is-hold");
-  eyeWrap.classList.remove("is-in", "is-ready", "is-opening");
+  eyeWrap.classList.remove("is-in", "is-ready", "is-opening", "is-lens");
   eyePhoto.style.opacity = "";
   eyePhoto.style.filter = "";
   eyePhoto.style.transition = "";

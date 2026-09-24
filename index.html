@@ -19,6 +19,19 @@
 
     <!-- memory-section -->
     <section id="memory-section" class="section" inert>
+      <div class="body-guide" id="body-guide" aria-hidden="true">
+        <svg viewBox="0 0 200 340" fill="none">
+          <defs>
+            <linearGradient id="guide-fade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#e8e6e3" stop-opacity="0.42"/>
+              <stop offset="0.62" stop-color="#e8e6e3" stop-opacity="0.28"/>
+              <stop offset="1" stop-color="#e8e6e3" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="M100 28 C62 28 40 70 40 116 C40 158 60 186 84 198 C64 208 28 220 8 236" stroke="url(#guide-fade)" stroke-width="1.35" stroke-linecap="round"/>
+          <path d="M100 28 C138 28 160 70 160 116 C160 158 140 186 116 198 C136 208 172 220 192 236" stroke="url(#guide-fade)" stroke-width="1.35" stroke-linecap="round"/>
+        </svg>
+      </div>
       <div id="memory-stage" class="memory-stage"></div>
     </section>
 
@@ -43,6 +56,11 @@
 
     <!-- camera-section -->
     <section id="camera-section" class="section" inert>
+      <div class="eye-contour" aria-hidden="true">
+        <svg viewBox="0 0 900 460" fill="none">
+          <path d="M30 230 C180 36, 720 36, 870 230 C720 424, 180 424, 30 230 Z" stroke="rgba(232,230,227,0.5)" stroke-width="2"/>
+        </svg>
+      </div>
       <div class="finder">
         <div class="finder-media" id="finder-media"></div>
         <div class="finder-chrome" aria-hidden="true">
